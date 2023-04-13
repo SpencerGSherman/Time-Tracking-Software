@@ -147,7 +147,7 @@ class TaskWidget(QWidget):
         self.setLayout(layout)
 
     def update_task_label(self):
-        self.time_label.setText(f"{self.task_name} - {self.total_time} seconds")
+         self.time_label.setText(f"{self.task_name} - {(self.total_time // 3600)}:{(self.total_time // 60)}:{(self.total_time % 60)}")
 
     def start_tracking(self):
         if not hasattr(self, "timer"):
