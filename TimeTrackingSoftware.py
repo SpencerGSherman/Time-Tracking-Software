@@ -1,20 +1,23 @@
-from PyQt6.QtCore import QTimer
-from PyQt6.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
-    QStackedWidget, QMessageBox, QCalendarWidget, QListWidget, QListWidgetItem, QInputDialog, QDialog, QDialogButtonBox
-)
 import sys
 import sqlite3
+from datetime import timedelta
 
-def create_database_and_tables(time_tracking_file):
-    conn = sqlite3.connect(time_tracking_file)
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QTextEdit, \
+    QInputDialog, QListWidget, QListWidgetItem, QStackedWidget, QCalendarWidget, QDialog, QDialogButtonBox, QMessageBox, \
+    QHBoxLayout, QCheckBox
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QFont
+
+
+def create_database_and_tables(database):
+    conn = sqlite3.connect(database)
 
     conn.execute(
         """
-        CREATE TABLE IF NOT EXISTS users (
-            user_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL
+        CREATE TABLE IF NOT EXISTS user_settings (
+            user_id INTEGER PRIMARY KEY,
+            show_calendar INTEGER DEFAULT 1,
+            FOREIGN KEY (user_id) REFERENCES users (user_id)
         );
         """
     )
@@ -32,6 +35,17 @@ def create_database_and_tables(time_tracking_file):
         """
     )
 
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL
+        );
+        """
+    )
+
+    conn.commit()
     conn.close()
 
 
@@ -39,240 +53,307 @@ class LoginPage(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Login")
-
-        self.init_ui()
-
-    def init_ui(self):
         layout = QVBoxLayout()
-        layout.setSpacing(30)
-        layout.addStretch()
 
-        self.username_label = QLabel("Username")
+        self.title_label = QLabel("Login")
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.title_label.setFont(QFont("Arial", 24))
+        layout.addWidget(self.title_label)
+
         self.username_input = QLineEdit()
-        self.password_label = QLabel("Password")
-        self.password_input = QLineEdit()
-        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
-
-        self.login_button = QPushButton("Log In")
-        self.login_button.clicked.connect(self.log_in)
-        self.register_button = QPushButton("Register")
-        self.register_button.clicked.connect(self.show_registration)
-
-        layout.addWidget(self.username_label)
+        self.username_input.setPlaceholderText("Username")
         layout.addWidget(self.username_input)
-        layout.addWidget(self.password_label)
+
+        self.password_input = QLineEdit()
+        self.password_input.setPlaceholderText("Password")
+        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
         layout.addWidget(self.password_input)
+
+        self.login_button = QPushButton("Login")
         layout.addWidget(self.login_button)
-        layout.addWidget(self.register_button)
+
+        self.create_account_button = QPushButton("Create Account")
+        layout.addWidget(self.create_account_button)
 
         self.setLayout(layout)
 
-    def log_in(self):
-        username = self.username_input.text()
-        password = self.password_input.text()
-
-        user_id = self.validate_login(username, password)
-        if user_id:
-            self.parent().login_user(user_id, username)
-        else:
-            QMessageBox.warning(self, "Error", "Invalid username or password")
-
-    def validate_login(self, username, password):
-        conn = sqlite3.connect(database)
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT user_id, password FROM users WHERE username = ?", (username,))
-        result = cursor.fetchone()
-
-        conn.close()
-
-        return result and result[1] == password and result[0]
-
-    def show_registration(self):
-        self.parent().setCurrentWidget(self.parent().registration_page)
 
 class RegistrationPage(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Registration")
-
-        self.init_ui()
-
-    def init_ui(self):
         layout = QVBoxLayout()
-        layout.setSpacing(30)
-        layout.addStretch()
 
-        self.username_label = QLabel("Username")
+        self.title_label = QLabel("Registration")
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.title_label.setFont(QFont("Arial", 24))
+        layout.addWidget(self.title_label)
+
         self.username_input = QLineEdit()
-        self.password_label = QLabel("Password")
-        self.password_input = QLineEdit()
-        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.confirm_password_label = QLabel("Confirm Password")
-        self.confirm_password_input = QLineEdit()
-        self.confirm_password_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.register_button = QPushButton("Register")
-        self.register_button.clicked.connect(self.register)
-        self.back_button = QPushButton("Back")
-        self.back_button.clicked.connect(self.show_login)
-
-        layout.addWidget(self.username_label)
+        self.username_input.setPlaceholderText("Username")
         layout.addWidget(self.username_input)
-        layout.addWidget(self.password_label)
+
+        self.password_input = QLineEdit()
+        self.password_input.setPlaceholderText("Password")
+        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
         layout.addWidget(self.password_input)
-        layout.addWidget(self.confirm_password_label)
-        layout.addWidget(self.confirm_password_input)
+
+        self.register_button = QPushButton("Register")
         layout.addWidget(self.register_button)
-        layout.addWidget(self.back_button)
+
+        self.back_to_login_button = QPushButton("Back")
+        layout.addWidget(self.back_to_login_button)
 
         self.setLayout(layout)
 
-    def register(self):
-        username = self.username_input.text()
-        password = self.password_input.text()
-        confirm_password = self.confirm_password_input.text()
 
-        if password != confirm_password:
-            QMessageBox.warning(self, "Error", "Passwords do not match")
-        elif self.user_exists(username):
-            QMessageBox.warning(self, "Error", "User already exists")
-        else:
-            self.create_user(username, password)
-            QMessageBox.information(self, "Success", "User registered successfully")
-            self.show_login()
-
-    def user_exists(self, username):
-        conn = sqlite3.connect(database)
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT COUNT(*) FROM users WHERE username = ?", (username,))
-        result = cursor.fetchone()[0]
-
-        conn.close()
-
-        return result > 0
-
-    def create_user(self, username, password):
-        conn = sqlite3.connect(database)
-        cursor = conn.cursor()
-
-        cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
-        conn.commit()
-        conn.close()
-
-    def show_login(self):
-       self.parent().setCurrentWidget(self.parent().login_page)
-
-class TaskItem(QListWidgetItem):
-    def __init__(self, task_id, task_name, total_time, task_description, parent=None):
-        super().__init__(parent)
+class TaskWidget(QWidget):
+    def __init__(self, task_id, task_name, total_time, task_description):
+        super().__init__()
 
         self.task_id = task_id
         self.task_name = task_name
         self.total_time = total_time
         self.task_description = task_description
 
-        self.task_widget = TaskWidget(self)
-        self.setSizeHint(self.task_widget.sizeHint())
-
-class TaskWidget(QWidget):
-    def __init__(self, task_item, parent=None):
-        super().__init__(parent)
-
-        self.task_item = task_item
-
         layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(5)
 
-        self.task_label = QLabel(task_item.task_name)
-        self.time_label = QLabel(f"Total Time: {task_item.total_time} s")
-
-        layout.addWidget(self.task_label)
+        self.time_label = QLabel()
+        self.update_task_label()
         layout.addWidget(self.time_label)
 
-        self.start_button = QPushButton("Start")
-        self.start_button.clicked.connect(self.start_tracking)
-        layout.addWidget(self.start_button)
+        start_button = QPushButton("Start")
+        start_button.setFixedSize(60, 20)
+        start_button.clicked.connect(self.start_tracking)
+        layout.addWidget(start_button)
 
-        self.stop_button = QPushButton("Stop")
-        self.stop_button.clicked.connect(self.stop_tracking)
-        layout.addWidget(self.stop_button)
+        stop_button = QPushButton("Stop")
+        stop_button.setFixedSize(60, 20)
+        stop_button.clicked.connect(self.stop_tracking)
+        layout.addWidget(stop_button)
+
+        delete_button = QPushButton("Delete")
+        delete_button.setFixedSize(60, 20)
+        delete_button.clicked.connect(self.delete_task)
+        layout.addWidget(delete_button)
+
+        edit_button = QPushButton("Edit")
+        edit_button.setFixedSize(60, 20)
+        edit_button.clicked.connect(self.show_edit_task_dialog)
+        layout.addWidget(edit_button)
 
         self.setLayout(layout)
 
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_total_time)
+    def update_task_label(self):
+        self.time_label.setText(f"{self.task_name} - {self.total_time} seconds")
 
     def start_tracking(self):
+        if not hasattr(self, "timer"):
+            self.timer = QTimer()
+            self.timer.timeout.connect(self.increment_time)
         self.timer.start(1000)
 
     def stop_tracking(self):
-        self.timer.stop()
+        if hasattr(self, "timer"):
+            self.timer.stop()
+            self.save_total_time()
 
-    def update_total_time(self):
-        self.task_item.total_time += 1
-        self.time_label.setText(f"Total Time: {self.task_item.total_time} s")
+    def increment_time(self):
+        self.total_time += 1
+        self.update_task_label()
+        self.save_total_time()
+
+    def save_total_time(self):
+        conn = sqlite3.connect(database)
+        cursor = conn.cursor()
+
+        cursor.execute("UPDATE task_list SET total_time = ? WHERE task_id = ?", (self.total_time, self.task_id))
+
+        conn.commit()
+        conn.close()
+
+    def delete_task(self):
+        conn = sqlite3.connect(database)
+        cursor = conn.cursor()
+
+        cursor.execute("DELETE FROM task_list WHERE task_id = ?", (self.task_id,))
+
+        conn.commit()
+        conn.close()
+
+        self.setParent(None)
+
+    def show_edit_task_dialog(self):
+        dialog = QDialog()
+        dialog.setWindowTitle("Edit Task")
+
+        vbox = QVBoxLayout()
+
+        task_name_label = QLabel("Task Name:")
+        vbox.addWidget(task_name_label)
+
+        task_name_edit = QLineEdit(self.task_name)
+        vbox.addWidget(task_name_edit)
+
+        task_description_label = QLabel("Task Description:")
+        vbox.addWidget(task_description_label)
+
+        task_description_edit = QTextEdit(self.task_description)
+        vbox.addWidget(task_description_edit)
+
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        vbox.addWidget(button_box)
+
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
+
+        dialog.setLayout(vbox)
+
+        result = dialog.exec()
+
+        if result == QDialog.DialogCode.Accepted:
+            self.task_name = task_name_edit.text()
+            self.task_description = task_description_edit.toPlainText()
+
+            conn = sqlite3.connect(database)
+            cursor = conn.cursor()
+
+            cursor.execute(
+                "UPDATE task_list SET task_name = ?, task_description = ? WHERE task_id = ?",
+                (self.task_name, self.task_description, self.task_id))
+
+            conn.commit()
+            conn.close()
+
+            self.update_task_label()
+
+
+class Settings:
+    def __init__(self, user_id):
+        self.user_id = user_id
+        self.preferences = self.load_preferences()
+
+    def load_preferences(self):
+        conn = sqlite3.connect(database)
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT show_calendar FROM user_settings WHERE user_id = ?", (self.user_id,))
+        result = cursor.fetchone()
+
+        if result:
+            show_calendar = bool(result[0])
+        else:
+            show_calendar = True
+            cursor.execute("INSERT INTO user_settings (user_id, show_calendar) VALUES (?, ?)",
+                           (self.user_id, int(show_calendar)))
+            conn.commit()
+
+        conn.close()
+        return {"show_calendar": show_calendar}
+
+    def save_preferences(self):
+        conn = sqlite3.connect(database)
+        cursor = conn.cursor()
+
+        cursor.execute("UPDATE user_settings SET show_calendar = ? WHERE user_id = ?",
+                       (int(self.preferences["show_calendar"]), self.user_id))
+        conn.commit()
+
+        conn.close()
+
+    def toggle_calendar(self):
+        self.preferences["show_calendar"] = not self.preferences["show_calendar"]
+        self.save_preferences()
+
+
+class SettingsDialog(QDialog):
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        self.setWindowTitle("Settings")
+
+        layout = QVBoxLayout(self)
+
+        self.calendar_checkbox = QCheckBox("Show Calendar")
+        self.calendar_checkbox.stateChanged.connect(self.toggle_calendar)
+        layout.addWidget(self.calendar_checkbox)
+
+        self.logout_button = QPushButton("Logout")
+        self.logout_button.clicked.connect(self.logout)
+        layout.addWidget(self.logout_button)
+
+    def toggle_calendar(self, state):
+        self.parent().toggle_calendar(state)
+
+    def logout(self):
+        self.parent().logout()
+        self.accept()
 
 
 class TimeTrackingApp(QWidget):
-    def __init__(self, user_id=None):
+    def __init__(self, user_id):
         super().__init__()
 
-        self.setWindowTitle("Time Tracking Application")
-
         self.user_id = user_id
-        self.init_ui()
 
-    def init_ui(self):
-        self.setWindowTitle("Time Tracking Application")
-        self.setGeometry(100, 100, 800, 600)
+        self.user_settings = Settings(user_id)
 
-        main_layout = QVBoxLayout()
+        layout = QVBoxLayout()
 
-        # Header
-        header_layout = QHBoxLayout()
-        self.username_label = QLabel("Username")
+        self.username_label = QLabel()
+        self.update_username_label()
+        layout.addWidget(self.username_label, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+
         self.settings_button = QPushButton("Settings")
-        self.settings_button.clicked.connect(self.show_settings)
+        self.settings_button.clicked.connect(self.show_settings_dialog)
+        layout.addWidget(self.settings_button, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
 
-        header_layout.addWidget(self.username_label)
-        header_layout.addStretch(1)
-        header_layout.addWidget(self.settings_button)
-
-        # Calendar
         self.calendar = QCalendarWidget()
+        layout.addWidget(self.calendar)
 
-        # Project list
-        self.project_list = QListWidget()
-        self.project_list.itemDoubleClicked.connect(self.show_edit_task_dialog)
+        self.task_list = QListWidget()
+        self.load_tasks()
+        layout.addWidget(self.task_list)
 
-        main_layout.addLayout(header_layout)
-        main_layout.addWidget(self.calendar)
-        main_layout.addWidget(self.project_list)
+        create_task_button = QPushButton("Create Task")
+        create_task_button.clicked.connect(self.create_task)
+        layout.addWidget(create_task_button)
 
-        task_management_layout = QHBoxLayout()
+        stop_all_tasks_button = QPushButton("Stop All Tasks")
+        stop_all_tasks_button.clicked.connect(self.stop_all_tasks)
+        layout.addWidget(stop_all_tasks_button)
 
-        self.create_task_button = QPushButton("Create Task")
-        self.create_task_button.clicked.connect(self.create_task)
+        self.setLayout(layout)
 
-        self.delete_task_button = QPushButton("Delete Task")
-        self.delete_task_button.clicked.connect(self.delete_task)
+    def update_username_label(self):
+        conn = sqlite3.connect(database)
+        cursor = conn.cursor()
 
-        self.stop_all_tasks_button = QPushButton("Stop All Tasks")
-        self.stop_all_tasks_button.clicked.connect(self.stop_all_tasks)
+        cursor.execute("SELECT username FROM users WHERE user_id = ?", (self.user_id,))
+        username = cursor.fetchone()[0]
 
-        task_management_layout.addWidget(self.create_task_button)
-        task_management_layout.addWidget(self.delete_task_button)
-        task_management_layout.addWidget(self.stop_all_tasks_button)
+        conn.close()
 
-        main_layout.addLayout(task_management_layout)
+        self.username_label.setText(f"Welcome, {username}!")
 
-        self.setLayout(main_layout)
+    def load_tasks(self):
+        conn = sqlite3.connect(database)
+        cursor = conn.cursor()
 
-    def show_settings(self):
-        print("Settings button clicked")
+        cursor.execute("SELECT task_id, task_name, total_time, task_description FROM task_list WHERE user_id = ?",
+                       (self.user_id,))
+
+        for task_id, task_name, total_time, task_description in cursor.fetchall():
+            task_widget = TaskWidget(task_id, task_name, total_time, task_description)
+            task_list_item = QListWidgetItem()
+            task_list_item.setSizeHint(task_widget.sizeHint())
+
+            self.task_list.addItem(task_list_item)
+            self.task_list.setItemWidget(task_list_item, task_widget)
+
+        conn.close()
 
     def create_task(self):
         task_name, ok = QInputDialog.getText(self, "Create Task", "Task Name:")
@@ -282,124 +363,140 @@ class TimeTrackingApp(QWidget):
             cursor = conn.cursor()
 
             cursor.execute("INSERT INTO task_list (user_id, task_name) VALUES (?, ?)", (self.user_id, task_name))
-
             conn.commit()
+
+            task_id = cursor.lastrowid
+
             conn.close()
 
-            self.update_task_list(clear_timers=False)
+            task_widget = TaskWidget(task_id, task_name, 0, "")
+            task_list_item = QListWidgetItem()
+            task_list_item.setSizeHint(task_widget.sizeHint())
 
-    def delete_task(self):
-        current_task = self.project_list.currentItem()
-
-        if isinstance(current_task, TaskItem):
-            conn = sqlite3.connect(database)
-            cursor = conn.cursor()
-
-            cursor.execute("DELETE FROM task_list WHERE task_id = ?", (current_task.task_id,))
-
-            conn.commit()
-            conn.close()
-
-            self.update_task_list(clear_timers=False)
+            self.task_list.addItem(task_list_item)
+            self.task_list.setItemWidget(task_list_item, task_widget)
 
     def stop_all_tasks(self):
-        for i in range(self.project_list.count()):
-            task_item = self.project_list.item(i)
-            if isinstance(task_item, TaskItem):
-                task_item.task_widget.stop_tracking()
+        for index in range(self.task_list.count()):
+            task_widget = self.task_list.itemWidget(self.task_list.item(index))
+            task_widget.stop_tracking()
 
-    def update_task_list(self, clear_timers=False):
-        self.project_list.clear()
+    def show_settings_dialog(self):
+        settings_dialog = SettingsDialog(self)
+        settings_dialog.exec()
+
+    def toggle_calendar(self, state):
+        self.calendar.setVisible(state)
+
+    def apply_preferences(self):
+        self.calendar.setVisible(self.user_settings.preferences["show_calendar"])
+
+    def logout(self):
+        self.parent().setCurrentIndex(0)
+
+
+class TimeTrackingApplication(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.stacked_widget = QStackedWidget()
+        self.login_page = LoginPage()
+        self.registration_page = RegistrationPage()
+
+        self.stacked_widget.addWidget(self.login_page)
+        self.stacked_widget.addWidget(self.registration_page)
+
+        self.setCentralWidget(self.stacked_widget)
+
+        self.login_page.login_button.clicked.connect(self.login)
+        self.login_page.username_input.returnPressed.connect(self.login)
+        self.login_page.password_input.returnPressed.connect(self.login)
+        self.login_page.create_account_button.clicked.connect(self.switch_to_register)
+
+        self.registration_page.register_button.clicked.connect(self.register)
+        self.registration_page.username_input.returnPressed.connect(self.register)
+        self.registration_page.password_input.returnPressed.connect(self.register)
+        self.registration_page.back_to_login_button.clicked.connect(self.switch_to_login)
+
+    def login(self):
+        username = self.login_page.username_input.text()
+        password = self.login_page.password_input.text()
+
+        if not username or not password:
+            QMessageBox.warning(self, "Error", "Please enter both username and password.")
+            return
 
         conn = sqlite3.connect(database)
         cursor = conn.cursor()
 
-        cursor.execute("SELECT task_id, task_name, total_time, task_description FROM task_list WHERE user_id = ?",
-                       (self.user_id,))
-        tasks = cursor.fetchall()
+        cursor.execute("SELECT user_id, password FROM users WHERE username = ?", (username,))
+        result = cursor.fetchone()
 
         conn.close()
 
-        for task in tasks:
-            task_item = TaskItem(task[0], task[1], task[2], task[3])
-            self.project_list.addItem(task_item)
-            self.project_list.setItemWidget(task_item, task_item.task_widget)
-            if clear_timers:
-                task_item.task_widget.stop_tracking()
+        if result:
+            user_id, stored_password = result
+
+            if password == stored_password:
+                time_tracking_app = TimeTrackingApp(user_id)
+                time_tracking_app.user_settings = Settings(user_id)
+                time_tracking_app.apply_preferences()
+                self.stacked_widget.addWidget(time_tracking_app)
+                self.stacked_widget.setCurrentIndex(self.stacked_widget.count() - 1)
+                self.setWindowTitle("Time Tracking Application")
+            else:
+                QMessageBox.warning(self, "Error", "Incorrect password.")
+        else:
+            QMessageBox.warning(self, "Error", "User not found.")
+
+    def register(self):
+        username = self.registration_page.username_input.text()
+        password = self.registration_page.password_input.text()
+
+        if not username or not password:
+            QMessageBox.warning(self, "Error", "Please enter both username and password.")
+            return
+
+        conn = sqlite3.connect(database)
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+            conn.commit()
+
+            QMessageBox.information(self, "Success", "User registered successfully.")
+            self.stacked_widget.setCurrentIndex(0)
+            self.login_page.username_input.clear()
+            self.login_page.password_input.clear()
+
+        except sqlite3.IntegrityError:
+            QMessageBox.warning(self, "Error", "Username already exists.")
+
+        conn.close()
+
+    def switch_to_register(self):
+        self.stacked_widget.setCurrentIndex(1)
+
+    def switch_to_login(self):
+        self.stacked_widget.setCurrentIndex(0)
 
 
-    def show_edit_task_dialog(self):
-        current_task = self.project_list.currentItem()
+def main():
+    create_database_and_tables(database)
 
-        if current_task and isinstance(current_task, TaskItem):
-            edit_task_dialog = QDialog(self)
-            edit_task_dialog.setWindowTitle("Edit Task")
+    app = QApplication(sys.argv)
 
-            layout = QVBoxLayout()
+    main_window = TimeTrackingApplication()
+    main_window.setWindowTitle("Time Tracking Application")
+    main_window.setGeometry(100, 100, 600, 400)
 
-            task_name_label = QLabel("Task Name:")
-            task_name_input = QLineEdit(current_task.task_name)
-            layout.addWidget(task_name_label)
-            layout.addWidget(task_name_input)
+    main_window.show()
 
-            total_time_label = QLabel(f"Total Time: {current_task.total_time} seconds")
-            layout.addWidget(total_time_label)
+    sys.exit(app.exec())
 
-            description_label = QLabel("Description:")
-            description_input = QLineEdit(current_task.task_description)
-            layout.addWidget(description_label)
-            layout.addWidget(description_input)
-
-            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-            buttons.accepted.connect(edit_task_dialog.accept)
-            buttons.rejected.connect(edit_task_dialog.reject)
-            layout.addWidget(buttons)
-
-            edit_task_dialog.setLayout(layout)
-
-            result = edit_task_dialog.exec()
-
-            if result == QDialog.DialogCode.Accepted:
-                new_task_name = task_name_input.text()
-                new_task_description = description_input.text()
-
-                conn = sqlite3.connect(database)
-                cursor = conn.cursor()
-
-                cursor.execute("UPDATE task_list SET task_name = ?, task_description = ? WHERE task_id = ?",
-                               (new_task_name, new_task_description, current_task.task_id))
-
-                conn.commit()
-                conn.close()
-
-                self.update_task_list()
-
-class TimeTrackingApplication(QStackedWidget):
-    def __init__(self):
-        super().__init__()
-
-        self.login_page = LoginPage()
-        self.registration_page = RegistrationPage()
-        self.main_widget = TimeTrackingApp()
-
-        self.addWidget(self.login_page)
-        self.addWidget(self.registration_page)
-        self.addWidget(self.main_widget)
-
-        self.setCurrentWidget(self.login_page)
-        self.setFixedSize(500, 400)
-
-    def login_user(self, user_id, username):
-        self.main_widget.user_id = user_id
-        self.main_widget.username_label.setText(username)
-        self.main_widget.update_task_list()
-        self.setCurrentWidget(self.main_widget)
 
 if __name__ == "__main__":
-        app = QApplication(sys.argv)
-        #Simply create a folder named "db" and place its directory in here with name time_tracking.db following it as seen below
-        database = r"C:\Users\ajru5\OneDrive\Documents\FloridaPoly\Spring2023\Secure Software Engineering\pythonProject\db\time_tracking.db"
-        create_database_and_tables(database)
-        time_tracking_application = TimeTrackingApplication()
-        time_tracking_application.show()
-        sys.exit(app.exec())
+    database = r"C:\\db\time_tracking.db"
+    main()
+
+
