@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLa
     QInputDialog, QListWidget, QListWidgetItem, QStackedWidget, QCalendarWidget, QDialog, QDialogButtonBox, QMessageBox, \
     QHBoxLayout, QCheckBox
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QIcon
 
 
 def create_database_and_tables(database):
@@ -147,7 +147,7 @@ class TaskWidget(QWidget):
         self.setLayout(layout)
 
     def update_task_label(self):
-         self.time_label.setText(f"{self.task_name} - {(self.total_time // 3600)}:{(self.total_time // 60)}:{(self.total_time % 60)}")
+        self.time_label.setText(f"{self.task_name} - {self.total_time} seconds")
 
     def start_tracking(self):
         if not hasattr(self, "timer"):
@@ -292,6 +292,42 @@ class SettingsDialog(QDialog):
         self.accept()
 
 
+
+class CalendarWindow(QWidget):
+    """
+    This "window" is a QWidget. If it has no parent, it
+    will appear as a free-floating window as we want.
+    """
+
+    def __init__(self):
+            super().__init__()
+
+            self.setGeometry(200, 200, 700, 400)
+            self.setWindowTitle("Calendar")
+            self.setWindowIcon(QIcon('python.png'))
+
+            vbox = QVBoxLayout()
+            self.calendar = QCalendarWidget()
+            self.calendar.setGridVisible(True)
+            self.calendar.selectionChanged.connect(self.calendar_date)
+
+            self.label = QLabel("Hello")
+            self.label.setFont(QFont("Sanserif", 15))
+            self.label.setStyleSheet('color:green')
+
+            vbox.addWidget(self.calendar)
+            vbox.addWidget(self.label)
+
+            self.setLayout(vbox)
+
+    def calendar_date(self):
+            dateselected = self.calendar.selectedDate()
+            date_in_string = str(dateselected.toPyDate())
+
+            self.label.setText("Date Is : " + date_in_string)
+
+
+
 class TimeTrackingApp(QWidget):
     def __init__(self, user_id):
         super().__init__()
@@ -305,6 +341,10 @@ class TimeTrackingApp(QWidget):
         self.username_label = QLabel()
         self.update_username_label()
         layout.addWidget(self.username_label, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+
+        self.calendar_button = QPushButton("View Calendar")
+        self.calendar_button.clicked.connect(self.show_new_window)
+        layout.addWidget(self.calendar_button, alignment=Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignRight)
 
         self.settings_button = QPushButton("Settings")
         self.settings_button.clicked.connect(self.show_settings_dialog)
@@ -394,6 +434,9 @@ class TimeTrackingApp(QWidget):
     def logout(self):
         self.parent().setCurrentIndex(0)
 
+    def show_new_window(self, checked):
+        self.w = CalendarWindow()
+        self.w.show()
 
 class TimeTrackingApplication(QMainWindow):
     def __init__(self):
@@ -496,7 +539,7 @@ def main():
 
 
 if __name__ == "__main__":
-    database = r"C:\\db\time_tracking.db"
+    database = r"C:\Users\dcarb\Documents\db\time_tracking.db"
     main()
 
 
