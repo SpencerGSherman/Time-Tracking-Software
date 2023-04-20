@@ -124,41 +124,40 @@ class TaskWidget(QWidget):
         self.update_task_label()
         layout.addWidget(self.time_label)
 
-        start_button = QPushButton("Start")
-        start_button.setFixedSize(60, 20)
+        start_button = QPushButton("Start/Stop")
+        start_button.setFixedSize(80, 25)
         start_button.clicked.connect(self.start_tracking)
         layout.addWidget(start_button)
 
-        stop_button = QPushButton("Stop")
-        stop_button.setFixedSize(60, 20)
-        stop_button.clicked.connect(self.stop_tracking)
-        layout.addWidget(stop_button)
-
         delete_button = QPushButton("Delete")
-        delete_button.setFixedSize(60, 20)
+        delete_button.setFixedSize(60, 25)
         delete_button.clicked.connect(self.delete_task)
         layout.addWidget(delete_button)
 
         edit_button = QPushButton("Edit")
-        edit_button.setFixedSize(60, 20)
+        edit_button.setFixedSize(60, 25)
         edit_button.clicked.connect(self.show_edit_task_dialog)
         layout.addWidget(edit_button)
 
         self.setLayout(layout)
 
+        self.is_on = False
+
     def update_task_label(self):
         self.time_label.setText(f"{self.task_name} - {(self.total_time // 3600)}:{((self.total_time % 3600) // 60)}:{(self.total_time % 60)}")
 
     def start_tracking(self):
-        if not hasattr(self, "timer"):
-            self.timer = QTimer()
-            self.timer.timeout.connect(self.increment_time)
-        self.timer.start(1000)
-
-    def stop_tracking(self):
-        if hasattr(self, "timer"):
-            self.timer.stop()
-            self.save_total_time()
+        if self.is_on:
+            if not hasattr(self, "timer"):
+                self.timer = QTimer()
+                self.timer.timeout.connect(self.increment_time)
+            self.timer.start(1000)
+            self.is_on = False
+        else:
+            if hasattr(self, "timer"):
+                self.timer.stop()
+                self.save_total_time()
+            self.is_on = True
 
     def increment_time(self):
         self.total_time += 1
@@ -541,5 +540,3 @@ def main():
 if __name__ == "__main__":
     database = r"C:\\db\time_tracking.db"
     main()
-
-
