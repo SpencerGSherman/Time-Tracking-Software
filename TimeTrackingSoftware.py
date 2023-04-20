@@ -539,7 +539,7 @@ def main():
 
 
 if __name__ == "__main__":
-    database = r"C:\Users\dcarb\Documents\db\time_tracking.db"
+    database = r"C:\\db\time_tracking.db"
     main()
 
 
