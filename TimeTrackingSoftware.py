@@ -498,6 +498,10 @@ class TimeTrackingApplication(QMainWindow):
         if not username or not password:
             QMessageBox.warning(self, "Error", "Please enter both username and password.")
             return
+        
+        if not len(self.registration_page.password_input.text()) >= 8:
+            QMessageBox.warning(self, "Error", "Password must be at least 8 characters long")
+            return
 
         conn = sqlite3.connect(database)
         cursor = conn.cursor()
