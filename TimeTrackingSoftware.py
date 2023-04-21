@@ -141,7 +141,7 @@ class TaskWidget(QWidget):
 
         self.setLayout(layout)
 
-        self.is_on = False
+        self.is_on = True
 
     def update_task_label(self):
         self.time_label.setText(f"{self.task_name} - {(self.total_time // 3600)}:{((self.total_time % 3600) // 60)}:{(self.total_time % 60)}")
