@@ -158,6 +158,11 @@ class TaskWidget(QWidget):
                 self.timer.stop()
                 self.save_total_time()
             self.is_on = True
+            
+    def stop_tracking(self):
+        if hasattr(self, "timer"):
+            self.timer.stop()
+            self.save_total_time()
 
     def increment_time(self):
         self.total_time += 1
