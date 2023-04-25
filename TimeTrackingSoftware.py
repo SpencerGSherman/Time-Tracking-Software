@@ -1,3 +1,6 @@
+'''
+Defined library imports necessary for program functionality (primarily using the PyQt6 Gui framework utilities).
+'''
 import sys
 import sqlite3
 from datetime import timedelta
@@ -8,7 +11,11 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLa
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QIcon
 
-
+'''
+Database table configuration handles and maintains user information. Table records are initialized here
+for the user, and a foreign key id will link created accounts to both the user_settings and task_list table.
+The format here is using sqlite3 and a local db file which is targeted and interacted with throughout execution.
+'''
 def create_database_and_tables(database):
     conn = sqlite3.connect(database)
 
@@ -48,7 +55,11 @@ def create_database_and_tables(database):
     conn.commit()
     conn.close()
 
-
+'''
+This module houses the login page widget which will provide an interface for
+the user to interact with their associated username/password. There is also a
+connection created to transition to the registration page.
+'''
 class LoginPage(QWidget):
     def __init__(self):
         super().__init__()
@@ -77,7 +88,11 @@ class LoginPage(QWidget):
 
         self.setLayout(layout)
 
-
+'''
+This module houses the registration page widget which will provide an interface for a
+user to create a new account with an associated username/password. There is also a
+connection created to transition to the login page.
+'''
 class RegistrationPage(QWidget):
     def __init__(self):
         super().__init__()
@@ -106,7 +121,11 @@ class RegistrationPage(QWidget):
 
         self.setLayout(layout)
 
-
+'''
+The task widget is created within the TimeTrackingApp class with a parent type
+that is a simple list widget. This module will be unique to each user's task list and
+allow for the individual creation and manipulation (start/stop/edit/delete) of individual units.
+'''
 class TaskWidget(QWidget):
     def __init__(self, task_id, task_name, total_time, task_description):
         super().__init__()
@@ -233,7 +252,10 @@ class TaskWidget(QWidget):
 
             self.update_task_label()
 
-
+'''
+Settings is the storehouse for all user preferences from the user_settings table,
+and it will be able to save, load, and edit explicitly-defined user parameters.
+'''
 class Settings:
     def __init__(self, user_id):
         self.user_id = user_id
@@ -271,7 +293,10 @@ class Settings:
         self.preferences["show_calendar"] = not self.preferences["show_calendar"]
         self.save_preferences()
 
-
+'''
+This module is a dialog widget as a member of the TimeTrackingApp that will handle
+dialog between the system and the user for updating preferences or reaching a logout state.
+'''
 class SettingsDialog(QDialog):
     def __init__(self, parent):
         super().__init__(parent)
@@ -331,7 +356,11 @@ class CalendarWindow(QWidget):
             self.label.setText("Date Is : " + date_in_string)
 
 
-
+'''
+The TimeTrackingApp class will control the task list creation, format its layout, handle the
+link to calendar creation/viewing, as well as act like a homepage in the stacked global widget. It
+must be created with an application already instilled and will be specific to each user_id. 
+'''
 class TimeTrackingApp(QWidget):
     def __init__(self, user_id):
         super().__init__()
@@ -442,6 +471,11 @@ class TimeTrackingApp(QWidget):
         self.w = CalendarWindow()
         self.w.show()
 
+'''
+This module acts as the program's main composed structure inclusive of the login, registration, and
+and main window widgets (stacked format). It handles login and registration validation as well
+as the link to provide user's with a path into their unique application instance.
+'''
 class TimeTrackingApplication(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -531,7 +565,11 @@ class TimeTrackingApplication(QMainWindow):
     def switch_to_login(self):
         self.stacked_widget.setCurrentIndex(0)
 
-
+'''
+Definition of main within the system is here and will create the application runtime from our
+current system. An instantiate of the TimeTrackingApplication class is generated to present 
+the user with the comprehensive stacked widget.
+'''
 def main():
     create_database_and_tables(database)
 
